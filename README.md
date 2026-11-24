@@ -1,4 +1,4 @@
-# warren-dotfiles
+# dotfiles
 
 The dotfiles URL for my warren workspaces. It holds no dotfiles: `install.sh`
 fetches the portable part of my dots store (`keyolk/config`) and links it into
