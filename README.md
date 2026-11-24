@@ -27,7 +27,7 @@ workspace, or run `~/.config/coderv2/dotfiles/install.sh` there.
 | fish | `config.fish`, `conf.d/`, `functions/` |
 | tmux | `.tmux.conf`, tpm |
 | vim / nvim | `.vimrc`, `.vim/`, `.config/nvim/`, vim-plug |
-| git | `.gitconfig` (included from the workspace's own, not replacing it), `.themes.gitconfig`, `.gitconfig-keyolk` |
+| git | `.gitconfig` (as `~/.config/git/config`; the workspace's `~/.gitconfig` is left alone), `.themes.gitconfig`, `.gitconfig-keyolk` |
 | prompt | `.config/starship.toml` |
 
 Not: `.bashrc`/`.profile` (Homebrew and Kiro), `~/.claude` (warren and the org

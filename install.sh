@@ -17,9 +17,8 @@
 #   3. symlinks every checked-out file into $HOME. A real file in the way is
 #      kept once as <name>.bak (as warren's own linker does); a link this
 #      script made earlier and no longer wants is removed;
-#   4. includes the store's .gitconfig from ~/.gitconfig instead of replacing
-#      it, because the workspace's ~/.gitconfig carries the gh credential
-#      helper that every git push here depends on;
+#   4. links the store's .gitconfig as ~/.config/git/config, leaving
+#      ~/.gitconfig (gh's credential helper, warren's GitHub sign-in) alone;
 #   5. installs, with mise, the few tools the configs call that the image
 #      lacks (best effort);
 #   6. installs vim and tmux plugins in the background.
@@ -159,15 +158,24 @@ fi
 mv "$want" "$state/links"
 echo "==> dotfiles-store: $(wc -l <"$state/links" | tr -d ' ') path(s) linked from $(sgit rev-parse --short HEAD)"
 
-# 4. git: include the store's config. A store config that sets a credential
-# helper would replace the gh one, so it is refused rather than included.
+# 4. git: the store's .gitconfig becomes git's XDG config
+# (~/.config/git/config), which git reads before ~/.gitconfig. ~/.gitconfig
+# stays the workspace's: it holds gh's credential helper, and warren copies
+# it between workspaces as the GitHub sign-in, so editing it would make
+# warren treat it as signed in here and stop updating it. A store config
+# that sets a credential helper would still replace gh's, so it is refused.
 inc="$dir/.gitconfig"
+xdg="$HOME/.config/git/config"
+# What an earlier version of this script added to ~/.gitconfig.
+git config --global --fixed-value --unset-all include.path "$inc" 2>/dev/null || true
 if [ -f "$inc" ]; then
 	if git config -f "$inc" --get-all credential.helper >/dev/null 2>&1; then
-		echo "!! dotfiles-store: $inc sets credential.helper; not including it"
+		echo "!! dotfiles-store: $inc sets credential.helper; not linking it"
 		fail=1
-	elif ! git config --global --get-all include.path 2>/dev/null | grep -qxF "$inc"; then
-		git config --global --add include.path "$inc" && echo "    ~/.gitconfig now includes $inc"
+	elif [ "$(readlink "$xdg" 2>/dev/null)" != "$inc" ]; then
+		[ -e "$xdg" ] && [ ! -L "$xdg" ] && mv "$xdg" "$xdg.bak"
+		mkdir -p "$(dirname "$xdg")"
+		ln -sfn "$inc" "$xdg" && echo "    $xdg -> $inc"
 	fi
 fi
 
