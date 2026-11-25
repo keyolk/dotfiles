@@ -31,6 +31,7 @@ kmd      keyolk/kmd      keyolk  kmd
 narwhal  keyolk/narwhal  keyolk  narwhal
 tweb     keyolk/tweb     keyolk  tweb twebd
 ccx      sendbird/ccx    -       ccx
+dispatch keyolk/slx      keyolk  dispatch
 '
 
 bin_dir="${RELEASE_TOOLS_BIN:-$HOME/.local/bin}"
