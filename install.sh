@@ -86,6 +86,8 @@ sgit() {
 }
 
 fail=0
+# This repo's checkout (warren runs install.sh from its root).
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # 1. Clone or update.
 if [ -d "$dir/.git" ]; then
@@ -220,6 +222,14 @@ if ! command -v cursor-agent >/dev/null && [ ! -x "$HOME/.local/bin/cursor-agent
 	echo "==> dotfiles-store: installing cursor-agent"
 	curl -fsSL https://cursor.com/install | bash >"$state/cursor.log" 2>&1 ||
 		{ echo "!! dotfiles-store: cursor-agent install failed ($state/cursor.log)"; fail=1; }
+fi
+
+# My harness TUIs (tmc, ghx, kmd, ...) from their GitHub releases, in the
+# background: a few downloads should not hold up a workspace start. A tool
+# with no Linux release yet is skipped; the next start picks it up.
+if [ -x "$here/release-tools.sh" ]; then
+	nohup "$here/release-tools.sh" >"$state/release-tools.log" 2>&1 </dev/null &
+	echo "    harness TUIs: installing from releases in the background ($state/release-tools.log)"
 fi
 
 # 6. Editor and tmux plugins, in the background: the first run clones a few
