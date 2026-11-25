@@ -228,13 +228,18 @@ fi
 # They live outside home, so every start checks; apt runs in the background
 # and only where passwordless sudo exists (a warren workspace).
 if [ "$(uname -s)" = Linux ] && ! dpkg -s libnss3 >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-	pkgs="libnss3 libgbm1 libxss1 libxkbcommon0 libdrm2 fonts-liberation"
-	# Ubuntu 24.04+ renamed these with the t64 suffix.
-	for p in libgtk-3-0t64:libgtk-3-0 libasound2t64:libasound2; do
-		if apt-cache show "${p%%:*}" >/dev/null 2>&1; then pkgs="$pkgs ${p%%:*}"; else pkgs="$pkgs ${p##*:}"; fi
-	done
-	# shellcheck disable=SC2086 # pkgs is a word list
-	nohup sh -c "sudo -n apt-get update -qq && sudo -n DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $pkgs" >"$state/tweb-deps.log" 2>&1 </dev/null &
+	# Ubuntu 24.04+ renamed two with the t64 suffix. Which name exists is
+	# known only after apt-get update (a fresh image has no package lists),
+	# so the choice runs in the same background job, after it.
+	nohup sh -c '
+		sudo -n apt-get update -qq || exit 1
+		pkgs="libnss3 libgbm1 libxss1 libxkbcommon0 libdrm2 fonts-liberation"
+		for p in libgtk-3-0t64:libgtk-3-0 libasound2t64:libasound2; do
+			n=${p%%:*}; apt-cache show "$n" >/dev/null 2>&1 || n=${p##*:}
+			pkgs="$pkgs $n"
+		done
+		sudo -n DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends $pkgs
+	' >"$state/tweb-deps.log" 2>&1 </dev/null &
 	echo "    tweb: installing its browser libraries in the background ($state/tweb-deps.log)"
 fi
 
