@@ -214,6 +214,14 @@ if ! command -v grok >/dev/null && [ ! -x "$HOME/.local/bin/grok" ] && [ ! -x "$
 		{ echo "!! dotfiles-store: grok install failed ($state/grok.log)"; fail=1; }
 fi
 
+# cursor-agent (cco's Cursor lane) from Cursor's installer: it links
+# ~/.local/bin/cursor-agent and only prints PATH advice, editing no rc file.
+if ! command -v cursor-agent >/dev/null && [ ! -x "$HOME/.local/bin/cursor-agent" ]; then
+	echo "==> dotfiles-store: installing cursor-agent"
+	curl -fsSL https://cursor.com/install | bash >"$state/cursor.log" 2>&1 ||
+		{ echo "!! dotfiles-store: cursor-agent install failed ($state/cursor.log)"; fail=1; }
+fi
+
 # 6. Editor and tmux plugins, in the background: the first run clones a few
 # dozen repositories, and a workspace start should not wait for that. Both
 # installers skip what is already there, so every start runs them.
