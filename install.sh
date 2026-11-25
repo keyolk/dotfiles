@@ -34,7 +34,7 @@ branch="${DOTFILES_STORE_BRANCH:-master}"
 gh_user="${DOTFILES_GH_USER:-keyolk}"
 dir="${DOTFILES_STORE_DIR:-$HOME/.local/share/dotfiles-store}"
 state="$HOME/.local/state/dotfiles-store"
-tools="${DOTFILES_TOOLS-starship fzf bat ripgrep}"
+tools="${DOTFILES_TOOLS-starship fzf bat ripgrep atuin}"
 
 # Sparse-checkout patterns (gitignore syntax, rooted at the store's work
 # tree, which is $HOME on the laptop). Only what is meant to work on Linux:
@@ -203,12 +203,30 @@ if [ -n "$tools" ] && command -v mise >/dev/null; then
 	done
 fi
 
+# grok (cco's grok lane) comes from xAI's installer, not mise. SHELL=/bin/sh:
+# the installer appends a PATH block to the login shell's rc file, which here
+# is fish's config.fish, a link into the store checkout; editing it would
+# leave the checkout dirty and the next pull refused. ~/.local/bin is on PATH
+# already, so nothing needs adding.
+if ! command -v grok >/dev/null && [ ! -x "$HOME/.local/bin/grok" ] && [ ! -x "$HOME/.grok/bin/grok" ]; then
+	echo "==> dotfiles-store: installing grok"
+	curl -fsSL https://x.ai/cli/install.sh | SHELL=/bin/sh GROK_BIN_DIR="$HOME/.local/bin" bash >"$state/grok.log" 2>&1 ||
+		{ echo "!! dotfiles-store: grok install failed ($state/grok.log)"; fail=1; }
+fi
+
 # 6. Editor and tmux plugins, in the background: the first run clones a few
 # dozen repositories, and a workspace start should not wait for that. Both
 # installers skip what is already there, so every start runs them.
 if command -v nvim >/dev/null && [ -f "$HOME/.vim/autoload/plug.vim" ]; then
 	nohup nvim --headless "+PlugInstall --sync" +qa >"$state/plug.log" 2>&1 </dev/null &
 	echo "    vim plugins: installing in the background ($state/plug.log)"
+fi
+# The workspace's tmux server starts before this links ~/.tmux.conf, so it
+# runs on tmux's defaults and tpm's installer refuses ("TPM not configured").
+# Sourcing the config gives open sessions the bindings and tpm its path.
+if tmux info >/dev/null 2>&1 && [ -f "$HOME/.tmux.conf" ]; then
+	tmux source-file "$HOME/.tmux.conf" >"$state/tmux-source.log" 2>&1 ||
+		echo "    tmux: sourcing ~/.tmux.conf reported errors ($state/tmux-source.log)"
 fi
 if [ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]; then
 	nohup "$HOME/.tmux/plugins/tpm/bin/install_plugins" >"$state/tpm.log" 2>&1 </dev/null &
