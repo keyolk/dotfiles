@@ -21,7 +21,8 @@
 #      ~/.gitconfig (gh's credential helper, warren's GitHub sign-in) alone;
 #   5. installs, with mise, the few tools the configs call that the image
 #      lacks (best effort);
-#   6. installs vim and tmux plugins in the background.
+#   6. installs vim and tmux plugins in the background;
+#   7. sets up the coordinator harness (~/.config/warren-coord/setup.sh).
 # A failure in one step is reported and the others still run; warren never
 # stops a start for dotfiles.
 set -u
@@ -53,6 +54,7 @@ paths=(
 	/.gitconfig-keyolk
 	/.themes.gitconfig
 	/.gitmodules
+	/.config/warren-coord/
 )
 # Submodules the linked configs load. The rest (fisherman) are not needed.
 submodules=(.tmux/plugins/tpm .vim/autoload/vim-plug)
@@ -106,6 +108,16 @@ else
 	sgit sparse-checkout set --no-cone "${paths[@]}" || exit 1
 	sgit checkout --quiet "$branch" || exit 1
 fi
+
+# The store's credential lives in the clone's own config too, so a plain git
+# there (warren's Dotfiles status, `git -C <store> fetch`) can reach it.
+git -C "$dir" config --replace-all credential.https://github.com.helper '' &&
+	git -C "$dir" config --add credential.https://github.com.helper "$helper" || fail=1
+# Tell warren's Dotfiles status about the store: this repo only installs it, so
+# a `dots push` changes the store, not this repo, and would never show as an
+# update otherwise. One line per repository: name, checkout, branch.
+mkdir -p "$HOME/.local/state/warren"
+printf 'keyolk/config\t%s\t%s\n' "$dir" "$branch" >"$HOME/.local/state/warren/dotfiles-sources"
 
 # 2. Submodules.
 sgit submodule update --init --quiet -- "${submodules[@]}" \
@@ -201,6 +213,13 @@ fi
 if [ -x "$HOME/.tmux/plugins/tpm/bin/install_plugins" ]; then
 	nohup "$HOME/.tmux/plugins/tpm/bin/install_plugins" >"$state/tpm.log" 2>&1 </dev/null &
 	echo "    tmux plugins: installing in the background ($state/tpm.log)"
+fi
+
+# 7. The coordinator harness: a Claude Code session in tmux main:coord that
+# hands long work to `warren task`. Linked by step 3; its script decides
+# whether this is a warren workspace.
+if [ -f "$HOME/.config/warren-coord/setup.sh" ]; then
+	bash "$HOME/.config/warren-coord/setup.sh" || { echo "!! dotfiles-store: warren-coord setup failed"; fail=1; }
 fi
 
 exit "$fail"
