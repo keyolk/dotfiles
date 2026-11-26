@@ -32,6 +32,7 @@ narwhal  keyolk/narwhal  keyolk  narwhal
 tweb     keyolk/tweb     keyolk  tweb twebd
 ccx      sendbird/ccx    -       ccx
 dispatch keyolk/slx      keyolk  dispatch
+sp       keyolk/session-policy keyolk sp
 '
 
 bin_dir="${RELEASE_TOOLS_BIN:-$HOME/.local/bin}"
