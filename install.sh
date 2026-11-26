@@ -57,6 +57,9 @@ paths=(
 	/.themes.gitconfig
 	/.gitmodules
 	/.config/warren-coord/
+	# ~/.kube/config stays out (static credentials, in clear); this is its
+	# rendered, credential-free copy, read through kube-portable.fish.
+	/.config/kube/portable.kubeconfig
 	/.claude/skills/
 	/.claude/memory/
 	/.claude/rules/
