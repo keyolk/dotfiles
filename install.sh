@@ -38,8 +38,10 @@ tools="${DOTFILES_TOOLS-starship fzf bat ripgrep atuin}"
 
 # Sparse-checkout patterns (gitignore syntax, rooted at the store's work
 # tree, which is $HOME on the laptop). Only what is meant to work on Linux:
-# .bashrc/.profile are brew- and Kiro-specific, and ~/.claude is managed by
-# warren and the org config sync.
+# .bashrc/.profile are brew- and Kiro-specific. Of ~/.claude only the parts
+# warren and the org config sync never write are linked: skills, memory and
+# rules. settings.json, CLAUDE.md and hooks stay out until warren stops
+# rewriting ~/.claude/settings.json and CLAUDE.md in place.
 paths=(
 	/.config/fish/config.fish
 	/.config/fish/conf.d/
@@ -55,6 +57,22 @@ paths=(
 	/.themes.gitconfig
 	/.gitmodules
 	/.config/warren-coord/
+	/.claude/skills/
+	/.claude/memory/
+	/.claude/rules/
+	# synced/ is the org config sync's own copy; doc:human, doc:visual-brief
+	# and brief-artifact are linked whole by warren-coord's setup.sh.
+	'!/.claude/skills/.trash/'
+	'!/.claude/skills/synced/'
+	'!/.claude/skills/doc:human/'
+	'!/.claude/skills/doc:visual-brief/'
+	'!/.claude/skills/brief-artifact/'
+	# Laptop only: macOS disk cleanup, Concur through the main Chrome, and the
+	# tweb browser policy (a workspace uses warren's browser instead).
+	'!/.claude/skills/disk-full-cleanup/'
+	'!/.claude/skills/sb:concur-expense-report/'
+	'!/.claude/skills/browser-automation/'
+	'!__pycache__/'
 )
 # Submodules the linked configs load. The rest (fisherman) are not needed.
 submodules=(.tmux/plugins/tpm .vim/autoload/vim-plug)
