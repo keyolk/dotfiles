@@ -31,7 +31,7 @@ kmd      keyolk/kmd      keyolk  kmd
 narwhal  keyolk/narwhal  keyolk  narwhal
 tweb     keyolk/tweb     keyolk  tweb twebd
 ccx      sendbird/ccx    -       ccx
-dispatch keyolk/slx      keyolk  dispatch
+dispatch keyolk/dispatch keyolk  dispatch
 sp       keyolk/session-policy keyolk sp
 '
 
