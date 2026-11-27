@@ -208,6 +208,13 @@ else
 	echo "!! harness: clone failed. Is $gh_user signed in to gh here? (gh auth login)"
 	fail=1
 fi
+# Same as the store: the credential lives in the clone's config, so a plain
+# `git pull`/`git push` there (editing a hook in the workspace) reaches this
+# private repo instead of failing with the workspace's work account.
+if [ -d "$harness_dir/.git" ]; then
+	git -C "$harness_dir" config --replace-all credential.https://github.com.helper '' &&
+		git -C "$harness_dir" config --add credential.https://github.com.helper "$helper" || fail=1
+fi
 hooks_src="$harness_dir/plugins/harness/hooks"
 if [ -d "$hooks_src" ] && [ "$(readlink "$HOME/.claude/hooks" 2>/dev/null)" != "$hooks_src" ]; then
 	if [ -L "$HOME/.claude/hooks" ]; then
