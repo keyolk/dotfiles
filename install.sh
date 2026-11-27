@@ -39,11 +39,11 @@ tools="${DOTFILES_TOOLS-starship fzf bat ripgrep atuin}"
 # Sparse-checkout patterns (gitignore syntax, rooted at the store's work
 # tree, which is $HOME on the laptop). Only what is meant to work on Linux:
 # .bashrc/.profile are brew- and Kiro-specific. Of ~/.claude only the parts
-# warren and the org config sync never write are linked: skills, memory,
-# rules, agents, commands, hooks and the harness plugin. settings.json and
-# CLAUDE.md stay out while warren rewrites them in place; the hooks those
-# would wire are loaded instead as the harness plugin, through
-# CLAUDE_CODE_PLUGIN_DIRS (conf.d/claude-harness.fish).
+# warren and the org config sync never write are linked: skills, memory and
+# rules. settings.json and CLAUDE.md stay out while warren rewrites them in
+# place. Hooks, subagents and commands come from the keyolk/harness plugin
+# (step 3b), loaded through CLAUDE_CODE_PLUGIN_DIRS
+# (conf.d/claude-harness.fish).
 paths=(
 	/.config/fish/config.fish
 	/.config/fish/conf.d/
@@ -65,14 +65,6 @@ paths=(
 	/.claude/skills/
 	/.claude/memory/
 	/.claude/rules/
-	/.claude/agents/
-	/.claude/commands/
-	/.claude/hooks/
-	/.claude/harness/
-	# The hooks' own tests and the macOS-only ones.
-	'!/.claude/hooks/test_*'
-	'!/.claude/hooks/hook_daemon*'
-	'!/.claude/hooks/notify.py'
 	# synced/ is the org config sync's own copy; doc:human, doc:visual-brief
 	# and brief-artifact are linked whole by warren-coord's setup.sh.
 	'!/.claude/skills/.trash/'
@@ -202,6 +194,35 @@ if [ -f "$state/links" ]; then
 fi
 mv "$want" "$state/links"
 echo "==> dotfiles-store: $(wc -l <"$state/links" | tr -d ' ') path(s) linked from $(sgit rev-parse --short HEAD)"
+
+# 3b. The harness plugin (keyolk/harness): a clone the fish config names in
+# CLAUDE_CODE_PLUGIN_DIRS, so `git pull` there is the update. ~/.claude/hooks
+# links to its hooks directory because skills and scripts name hook files by
+# that path. The clone is never reset: a local edit stays until it is pushed.
+harness_url="${HARNESS_URL:-https://github.com/keyolk/harness.git}"
+harness_dir="${HARNESS_DIR:-$HOME/src/keyolk/harness}"
+hgit() { sgit -C "$harness_dir" "$@"; }
+if [ -d "$harness_dir/.git" ]; then
+	hgit pull --quiet --ff-only || echo "!! harness: pull failed; keeping $(hgit rev-parse --short HEAD)"
+elif mkdir -p "$(dirname "$harness_dir")" && sgit clone --quiet "$harness_url" "$harness_dir"; then
+	:
+else
+	echo "!! harness: clone failed. Is $gh_user signed in to gh here? (gh auth login)"
+	fail=1
+fi
+hooks_src="$harness_dir/plugins/harness/hooks"
+if [ -d "$hooks_src" ] && [ "$(readlink "$HOME/.claude/hooks" 2>/dev/null)" != "$hooks_src" ]; then
+	if [ -L "$HOME/.claude/hooks" ]; then
+		rm -f "$HOME/.claude/hooks"
+	elif [ -e "$HOME/.claude/hooks" ]; then
+		# Before this step the store linked hooks one file at a time.
+		mv "$HOME/.claude/hooks" "$HOME/.claude/hooks.bak.$(date +%s)"
+	fi
+	mkdir -p "$HOME/.claude" && ln -s "$hooks_src" "$HOME/.claude/hooks"
+fi
+[ -d "$harness_dir/.git" ] && printf 'keyolk/harness\t%s\t%s\n' "$harness_dir" "$(hgit rev-parse --abbrev-ref HEAD)" \
+	>>"$HOME/.local/state/warren/dotfiles-sources"
+echo "==> harness: $harness_dir at $(hgit rev-parse --short HEAD 2>/dev/null || echo none)"
 
 # 4. git: the store's .gitconfig becomes git's XDG config
 # (~/.config/git/config), which git reads before ~/.gitconfig. ~/.gitconfig
