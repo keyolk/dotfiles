@@ -65,17 +65,15 @@ paths=(
 	/.claude/skills/
 	/.claude/memory/
 	/.claude/rules/
-	# synced/ is the org config sync's own copy; doc:human, doc:visual-brief
-	# and brief-artifact are linked whole by warren-coord's setup.sh.
+	# synced/ is the org config sync's own copy; brief-artifact is linked
+	# whole by warren-coord's setup.sh. The prefixed skills (sb:, doc:, ...)
+	# are no longer in the store: they come from keyolk/harness (step 3b).
 	'!/.claude/skills/.trash/'
 	'!/.claude/skills/synced/'
-	'!/.claude/skills/doc:human/'
-	'!/.claude/skills/doc:visual-brief/'
 	'!/.claude/skills/brief-artifact/'
-	# Laptop only: macOS disk cleanup, Concur through the main Chrome, and the
-	# tweb browser policy (a workspace uses warren's browser instead).
+	# Laptop only: macOS disk cleanup and the tweb browser policy (a
+	# workspace uses warren's browser instead).
 	'!/.claude/skills/disk-full-cleanup/'
-	'!/.claude/skills/sb:concur-expense-report/'
 	'!/.claude/skills/browser-automation/'
 	'!__pycache__/'
 )
@@ -220,6 +218,29 @@ if [ -d "$hooks_src" ] && [ "$(readlink "$HOME/.claude/hooks" 2>/dev/null)" != "
 	fi
 	mkdir -p "$HOME/.claude" && ln -s "$hooks_src" "$HOME/.claude/hooks"
 fi
+# Skills: plugins/<ns>/skills/<name> is the skill <ns>:<name>, linked at the
+# path skills, hooks and Monitor commands use (~/.claude/skills/<ns>:<name>).
+# _shared holds files the sb skills read. Concur runs through the laptop's
+# main Chrome, so it stays off here.
+harness_skip=" sb:concur-expense-report "
+for sk in "$harness_dir"/plugins/*/skills/*/; do
+	[ -d "$sk" ] || continue
+	sk=${sk%/}
+	ns=$(basename "$(dirname "$(dirname "$sk")")")
+	name=$(basename "$sk")
+	case "$name" in _*) dst=$HOME/.claude/skills/$name ;; *) dst=$HOME/.claude/skills/$ns:$name ;; esac
+	case "$harness_skip" in *" $(basename "$dst") "*) continue ;; esac
+	[ "$(readlink "$dst" 2>/dev/null)" = "$sk" ] && continue
+	if [ -L "$dst" ]; then
+		rm -f "$dst"
+	elif [ -d "$dst" ] && [ -z "$(find "$dst" -type f ! -name '*.pyc' 2>/dev/null)" ]; then
+		# What step 3 left of a skill the store used to link file by file.
+		rm -rf "$dst"
+	elif [ -e "$dst" ]; then
+		mv "$dst" "$dst.bak.$(date +%s)"
+	fi
+	mkdir -p "$HOME/.claude/skills" && ln -s "$sk" "$dst"
+done
 [ -d "$harness_dir/.git" ] && printf 'keyolk/harness\t%s\t%s\n' "$harness_dir" "$(hgit rev-parse --abbrev-ref HEAD)" \
 	>>"$HOME/.local/state/warren/dotfiles-sources"
 echo "==> harness: $harness_dir at $(hgit rev-parse --short HEAD 2>/dev/null || echo none)"
