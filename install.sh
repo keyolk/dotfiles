@@ -39,9 +39,11 @@ tools="${DOTFILES_TOOLS-starship fzf bat ripgrep atuin}"
 # Sparse-checkout patterns (gitignore syntax, rooted at the store's work
 # tree, which is $HOME on the laptop). Only what is meant to work on Linux:
 # .bashrc/.profile are brew- and Kiro-specific. Of ~/.claude only the parts
-# warren and the org config sync never write are linked: skills, memory and
-# rules. settings.json, CLAUDE.md and hooks stay out until warren stops
-# rewriting ~/.claude/settings.json and CLAUDE.md in place.
+# warren and the org config sync never write are linked: skills, memory,
+# rules, agents, commands, hooks and the harness plugin. settings.json and
+# CLAUDE.md stay out while warren rewrites them in place; the hooks those
+# would wire are loaded instead as the harness plugin, through
+# CLAUDE_CODE_PLUGIN_DIRS (conf.d/claude-harness.fish).
 paths=(
 	/.config/fish/config.fish
 	/.config/fish/conf.d/
@@ -63,6 +65,14 @@ paths=(
 	/.claude/skills/
 	/.claude/memory/
 	/.claude/rules/
+	/.claude/agents/
+	/.claude/commands/
+	/.claude/hooks/
+	/.claude/harness/
+	# The hooks' own tests and the macOS-only ones.
+	'!/.claude/hooks/test_*'
+	'!/.claude/hooks/hook_daemon*'
+	'!/.claude/hooks/notify.py'
 	# synced/ is the org config sync's own copy; doc:human, doc:visual-brief
 	# and brief-artifact are linked whole by warren-coord's setup.sh.
 	'!/.claude/skills/.trash/'
